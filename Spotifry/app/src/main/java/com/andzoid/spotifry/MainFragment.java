@@ -20,7 +20,6 @@ import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -109,10 +108,8 @@ public class MainFragment extends Fragment {
 
                 Artist a = artistAdapter.getItem(position);
 
-                SpotifyArtistTopTenTracksAsyncTask task = new SpotifyArtistTopTenTracksAsyncTask();
-                task.execute(a.name);
-
-
+                Intent intent = new Intent(getActivity(), TracksActivity.class).putExtra("ARTIST", a.id);
+                startActivity(intent);
             }
         });
 
@@ -216,38 +213,7 @@ public class MainFragment extends Fragment {
         }
     }
 
-    public class SpotifyArtistTopTenTracksAsyncTask extends AsyncTask<String, Void, List<Track>>
-    {
-        @Override
-        protected List<Track> doInBackground(String... sName) {
 
-            SpotifyApi api = new SpotifyApi();
-            SpotifyService service = api.getService();
-
-            Tracks results = service.getArtistTopTrack(sName[0]);
-
-            List<Track> tracks = results.tracks;
-
-            return tracks;
-        }
-
-        @Override
-        protected void onPostExecute(List<Track> l) {
-
-            if (l != null) {
-
-                if (l.isEmpty()) {
-
-                    Toast.makeText(getActivity(), getString(R.string.artist_tracks_not_found_msg), Toast.LENGTH_SHORT).show();
-                }
-                else {
-
-                    Intent intent = new Intent(getActivity(), TracksActivity.class).putExtra("Tracks", (Serializable) l);
-                    startActivity(intent);
-                }
-            }
-        }
-    }
 
 
 

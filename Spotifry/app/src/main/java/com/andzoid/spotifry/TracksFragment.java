@@ -17,7 +17,9 @@ import android.widget.Toast;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
@@ -71,7 +73,6 @@ public class TracksFragment extends Fragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
 
         this.setRetainInstance(true);
@@ -87,14 +88,6 @@ public class TracksFragment extends Fragment {
 
         trackAdapter = new TrackAdapter(getActivity(), new ArrayList<Track>());
 
-        Intent intent = getActivity().getIntent();
-
-        List<Track> l = (ArrayList<Track>)intent.getSerializableExtra("Tracks");
-
-        for (Track t : l) {
-
-            trackAdapter.add(t);
-        }
 
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_tracks, container, false);
@@ -105,12 +98,17 @@ public class TracksFragment extends Fragment {
         return v;
     }
 
-//    @Override
-//    public void onStart() {
-//        super.onStart();
-//
-//
-//    }
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        Intent intent = getActivity().getIntent();
+
+        String s = intent.getStringExtra("ARTIST");
+
+        SpotifyArtistTopTenTracksAsyncTask task = new SpotifyArtistTopTenTracksAsyncTask();
+        task.execute(s);
+    }
 
     // TODO: Rename method, update argument and hook method into UI event
 //    public void onButtonPressed(Uri uri) {
@@ -152,7 +150,43 @@ public class TracksFragment extends Fragment {
 //    }
 
 
+    public class SpotifyArtistTopTenTracksAsyncTask extends AsyncTask<String, Void, List<Track>>
+    {
+        @Override
+        protected List<Track> doInBackground(String... s) {
 
+            SpotifyApi api = new SpotifyApi();
+            SpotifyService service = api.getService();
+
+            Map<String, Object> cn = new HashMap<>();
+            cn.put("country", "CA");
+
+            Tracks results = service.getArtistTopTrack(s[0], cn);
+
+            List<Track> tracks = results.tracks;
+
+            return tracks;
+        }
+
+        @Override
+        protected void onPostExecute(List<Track> l) {
+
+            if (l != null) {
+
+                if (l.isEmpty()) {
+
+                    Toast.makeText(getActivity(), getString(R.string.artist_tracks_not_found_msg), Toast.LENGTH_SHORT).show();
+                }
+
+                trackAdapter.clear();
+
+                for (Track t : l) {
+
+                    trackAdapter.add(t);
+                }
+            }
+        }
+    }
 
     public class TrackAdapter extends ArrayAdapter<Track> {
         //private static final String LOG_TAG = AndroidFlavorAdapter.class.getSimpleName();
@@ -204,6 +238,8 @@ public class TracksFragment extends Fragment {
             TextView tv = (TextView) convertView.findViewById(R.id.track_name);
             tv.setText(t.name);
 
+            tv = (TextView) convertView.findViewById(R.id.track_album);
+            tv.setText(t.album.name.toString());
 
             return convertView;
         }
