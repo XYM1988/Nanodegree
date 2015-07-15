@@ -65,7 +65,9 @@ public class TracksFragment extends Fragment {
 //        return fragment;
 //    }
 
-    private TrackAdapter trackAdapter;
+    //private TrackAdapter trackAdapter;
+    private ArrayList<ParcelableTrack> tracks;
+
 
     public TracksFragment() {
         // Required empty public constructor
@@ -75,7 +77,14 @@ public class TracksFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        this.setRetainInstance(true);
+        if (savedInstanceState == null || !savedInstanceState.containsKey("tracks")) {
+
+            this.tracks = new ArrayList<ParcelableTrack>();
+        }
+        else {
+
+            this.tracks = savedInstanceState.getParcelableArrayList("tracks");
+        }
 
 //        if (getArguments() != null) {
 //            mParam1 = getArguments().getString(ARG_PARAM1);
@@ -84,9 +93,17 @@ public class TracksFragment extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(Bundle b) {
+
+        b.putParcelableArrayList("tracks", this.tracks);
+
+        super.onSaveInstanceState(b);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        trackAdapter = new TrackAdapter(getActivity(), new ArrayList<Track>());
+        TrackAdapter trackAdapter = new TrackAdapter(getActivity(), this.tracks);
 
 
         // Inflate the layout for this fragment
@@ -102,12 +119,15 @@ public class TracksFragment extends Fragment {
     public void onStart() {
         super.onStart();
 
-        Intent intent = getActivity().getIntent();
+        if (this.tracks.isEmpty()) {
 
-        String s = intent.getStringExtra("ARTIST");
+            Intent intent = getActivity().getIntent();
 
-        SpotifyArtistTopTenTracksAsyncTask task = new SpotifyArtistTopTenTracksAsyncTask();
-        task.execute(s);
+            String s = intent.getStringExtra("ARTIST");
+
+            SpotifyArtistTopTenTracksAsyncTask task = new SpotifyArtistTopTenTracksAsyncTask();
+            task.execute(s);
+        }
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -150,8 +170,8 @@ public class TracksFragment extends Fragment {
 //    }
 
 
-    public class SpotifyArtistTopTenTracksAsyncTask extends AsyncTask<String, Void, List<Track>>
-    {
+    public class SpotifyArtistTopTenTracksAsyncTask extends AsyncTask<String, Void, List<Track>> {
+
         @Override
         protected List<Track> doInBackground(String... s) {
 
@@ -163,9 +183,9 @@ public class TracksFragment extends Fragment {
 
             Tracks results = service.getArtistTopTrack(s[0], cn);
 
-            List<Track> tracks = results.tracks;
+            List<Track> l = results.tracks;
 
-            return tracks;
+            return l;
         }
 
         @Override
@@ -178,19 +198,17 @@ public class TracksFragment extends Fragment {
                     Toast.makeText(getActivity(), getString(R.string.artist_tracks_not_found_msg), Toast.LENGTH_SHORT).show();
                 }
 
-                trackAdapter.clear();
+                tracks.clear();
 
                 for (Track t : l) {
 
-                    trackAdapter.add(t);
+                    tracks.add(new ParcelableTrack(t.name, t.album.name, t.album.images.isEmpty() ? "" : t.album.images.get(0).url));
                 }
             }
         }
     }
 
-    public class TrackAdapter extends ArrayAdapter<Track> {
-        //private static final String LOG_TAG = AndroidFlavorAdapter.class.getSimpleName();
-
+    public class TrackAdapter extends ArrayAdapter<ParcelableTrack> {
         /**
          * This is our own custom constructor (it doesn't mirror a superclass constructor).
          * The context is used to inflate the layout file, and the List is the data we want
@@ -199,7 +217,7 @@ public class TracksFragment extends Fragment {
          * @param context        The current context. Used to inflate the layout file.
          * @param l A List of AndroidFlavor objects to display in a list
          */
-        public TrackAdapter(Activity context, List<Track> l) {
+        public TrackAdapter(Activity context, List<ParcelableTrack> l) {
             // Here, we initialize the ArrayAdapter's internal storage for the context and the list.
             // the second argument is used when the ArrayAdapter is populating a single TextView.
             // Because this is a custom adapter for two TextViews and an ImageView, the adapter is not
@@ -219,7 +237,7 @@ public class TracksFragment extends Fragment {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             // Gets the AndroidFlavor object from the ArrayAdapter at the appropriate position
-            Track t = getItem(position);
+            ParcelableTrack t = getItem(position);
 
             // Adapters recycle views to AdapterViews.
             // If this is a new View object we're getting, then inflate the layout.
@@ -231,15 +249,15 @@ public class TracksFragment extends Fragment {
 
             ImageView iv = (ImageView) convertView.findViewById(R.id.track_icon);
 
-            if (!t.album.images.isEmpty()) {
-                Picasso.with(getContext()).load(t.album.images.get(0).url).into(iv);
+            if (!t.ImageUrl.isEmpty()) {
+                Picasso.with(getContext()).load(t.ImageUrl).into(iv);
             }
 
             TextView tv = (TextView) convertView.findViewById(R.id.track_name);
-            tv.setText(t.name);
+            tv.setText(t.Name);
 
             tv = (TextView) convertView.findViewById(R.id.track_album);
-            tv.setText(t.album.name.toString());
+            tv.setText(t.Album);
 
             return convertView;
         }

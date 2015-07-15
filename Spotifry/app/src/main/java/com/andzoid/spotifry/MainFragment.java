@@ -70,6 +70,7 @@ public class MainFragment extends Fragment {
 //    }
 
     private ArtistAdapter artistAdapter;
+    private ArrayList<ParcelableArtist> artists;
 
     public MainFragment() {
         // Required empty public constructor
@@ -80,7 +81,14 @@ public class MainFragment extends Fragment {
 
         super.onCreate(savedInstanceState);
 
-        this.setRetainInstance(true);
+        if (savedInstanceState == null || !savedInstanceState.containsKey("artists")) {
+
+            this.artists = new ArrayList<ParcelableArtist>();
+        }
+        else {
+
+            this.artists = savedInstanceState.getParcelableArrayList("artists");
+        }
 
 //        if (getArguments() != null) {
 //            mParam1 = getArguments().getString(ARG_PARAM1);
@@ -89,9 +97,17 @@ public class MainFragment extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(Bundle b) {
+
+        b.putParcelableArrayList("artists", this.artists);
+
+        super.onSaveInstanceState(b);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        artistAdapter = new ArtistAdapter(getActivity(), new ArrayList<Artist>());
+        artistAdapter = new ArtistAdapter(getActivity(), this.artists);
 
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_main, container, false);
@@ -106,9 +122,9 @@ public class MainFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
-                Artist a = artistAdapter.getItem(position);
+                ParcelableArtist a = artistAdapter.getItem(position);
 
-                Intent intent = new Intent(getActivity(), TracksActivity.class).putExtra("ARTIST", a.id);
+                Intent intent = new Intent(getActivity(), TracksActivity.class).putExtra("ARTIST", a.ID);
                 startActivity(intent);
             }
         });
@@ -178,8 +194,8 @@ public class MainFragment extends Fragment {
 
 
 
-    public class SpotifyArtistSearchAsyncTask extends AsyncTask<String, Void, List<Artist>>
-    {
+    public class SpotifyArtistSearchAsyncTask extends AsyncTask<String, Void, List<Artist>> {
+
         @Override
         protected List<Artist> doInBackground(String... sName) {
 
@@ -188,9 +204,9 @@ public class MainFragment extends Fragment {
 
             ArtistsPager results = service.searchArtists(sName[0]);
 
-            List<Artist> artists = results.artists.items;
+            List<Artist> l = results.artists.items;
 
-            return artists;
+            return l;
         }
 
         @Override
@@ -203,11 +219,11 @@ public class MainFragment extends Fragment {
                     Toast.makeText(getActivity(), getString(R.string.artist_not_found_msg), Toast.LENGTH_SHORT).show();
                 }
 
-                artistAdapter.clear();
+                artists.clear();
 
                 for (Artist a : l) {
 
-                    artistAdapter.add(a);
+                    artists.add(new ParcelableArtist(a.id, a.name, a.images.isEmpty() ? "" : a.images.get(0).url));
                 }
             }
         }
@@ -217,7 +233,7 @@ public class MainFragment extends Fragment {
 
 
 
-    public class ArtistAdapter extends ArrayAdapter<Artist> {
+    public class ArtistAdapter extends ArrayAdapter<ParcelableArtist> {
         //private static final String LOG_TAG = AndroidFlavorAdapter.class.getSimpleName();
 
         /**
@@ -228,7 +244,7 @@ public class MainFragment extends Fragment {
          * @param context        The current context. Used to inflate the layout file.
          * @param l A List of AndroidFlavor objects to display in a list
          */
-        public ArtistAdapter(Activity context, List<Artist> l) {
+        public ArtistAdapter(Activity context, List<ParcelableArtist> l) {
             // Here, we initialize the ArrayAdapter's internal storage for the context and the list.
             // the second argument is used when the ArrayAdapter is populating a single TextView.
             // Because this is a custom adapter for two TextViews and an ImageView, the adapter is not
@@ -248,7 +264,7 @@ public class MainFragment extends Fragment {
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             // Gets the AndroidFlavor object from the ArrayAdapter at the appropriate position
-            Artist a = getItem(position);
+            ParcelableArtist a = getItem(position);
 
             // Adapters recycle views to AdapterViews.
             // If this is a new View object we're getting, then inflate the layout.
@@ -260,12 +276,12 @@ public class MainFragment extends Fragment {
 
             ImageView iv = (ImageView) convertView.findViewById(R.id.artist_icon);
 
-            if (!a.images.isEmpty()) {
-                Picasso.with(getContext()).load(a.images.get(0).url).into(iv);
+            if (!a.ImageUrl.isEmpty()) {
+                Picasso.with(getContext()).load(a.ImageUrl).into(iv);
             }
 
             TextView tv = (TextView) convertView.findViewById(R.id.artist_name);
-            tv.setText(a.name);
+            tv.setText(a.Name);
 
 
             return convertView;
